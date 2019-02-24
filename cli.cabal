@@ -1,0 +1,84 @@
+name:                cli
+version:             0.1.0.0
+synopsis:            Simple cli
+description:         Simple cli
+homepage:            https://github.com/biocad/software-engineering#readme
+license:             BSD3
+license-file:        LICENSE
+author:              Alexander Sadovnikov
+maintainer:          AlexKaneRUS
+copyright:           2019 Alexander Sadovnikov
+category:            Math
+build-type:          Simple
+extra-source-files:  README.md
+cabal-version:       >=1.10
+
+library
+  hs-source-dirs:      src
+  exposed-modules:     System.CLI.Command
+                     , System.CLI.Environment
+                     , System.CLI.Parser
+                     , System.CLI.Preprocessor
+                     , System.CLI.Runner
+  other-modules:       System.CLI.Command.Internal.Executor
+                     , System.CLI.Command.Internal.ExternalCommand
+                     , System.CLI.Command.Internal.Pipeline
+                     , System.CLI.Command.Internal.Types
+                     , System.CLI.Command.Internal.Wc
+                     , System.CLI.Environment.Internal.EnvOperations
+                     , System.CLI.Environment.Internal.StreamOperations
+                     , System.CLI.Environment.Internal.Types
+  build-depends:       base >= 4.7 && < 5
+                     , bytestring
+                     , containers
+                     , directory
+                     , megaparsec
+                     , mtl
+                     , process
+  default-language:    Haskell2010
+
+test-suite preprocessor
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      test
+  main-is:             PreprocessorTest.hs
+  build-depends:       base
+                     , cli
+                     , containers
+                     , hspec
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N
+  default-language:    Haskell2010
+  
+test-suite parser
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      test
+  main-is:             ParserTest.hs
+  build-depends:       base
+                     , cli
+                     , hspec
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N
+  default-language:    Haskell2010 
+  
+test-suite command
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      test
+  main-is:             CommandTest.hs
+  build-depends:       base
+                     , bytestring
+                     , cli
+                     , containers
+                     , directory
+                     , hspec
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N
+  default-language:    Haskell2010 
+  
+executable cli
+  hs-source-dirs:      app
+  main-is:             CLI.hs
+  build-depends:       base
+                     , cli
+  default-language:    Haskell2010
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N -Wall -O2  
+
+source-repository head
+  type:     git
+  location: https://github.com/biocad/software-engineering
