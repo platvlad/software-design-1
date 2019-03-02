@@ -7,7 +7,8 @@ import           Data.ByteString        (ByteString)
 import           Data.Either            (isLeft)
 import qualified Data.Map.Strict        as M (fromList)
 import           System.CLI.Command     (Command (..), executePipeline)
-import           System.CLI.Environment (RuntimeEnv (..), runCLIMonad, toStream)
+import           System.CLI.Environment (RuntimeEnv (..), runCLIMonad,
+                                         splitStream, toStream)
 import           System.Directory       (getCurrentDirectory)
 import           Test.Hspec
 
@@ -50,3 +51,33 @@ pipelinedCommands = describe "Check commands linked with pipes." $ do
         fmap stream res `shouldBe` Right ""
         fmap varState res `shouldBe` Right (M.fromList [("AAA", "288AAAC")])
         fmap exit res `shouldBe` Right True
+    it "grep" $ do
+        cwd <- liftIO getCurrentDirectory
+        res <- fmap stream <$> (liftIO $ runCLIMonad $ executePipeline [ Cat $ Just $ cwd ++ "/" ++ "test/data/LICENSE"
+                                                                       , Grep False False 0 ["copy"]
+                                                                       ])
+        fmap (length . splitStream '\n') res `shouldBe` Right 3
+    it "grep -i" $ do
+        cwd <- liftIO getCurrentDirectory
+        res <- fmap stream <$> (liftIO $ runCLIMonad $ executePipeline [ Cat $ Just $ cwd ++ "/" ++ "test/data/LICENSE"
+                                                                       , Grep True False 0 ["copy"]
+                                                                       ])
+        fmap (length . splitStream '\n') res `shouldBe` Right 6
+    it "grep regexp" $ do
+        cwd <- liftIO getCurrentDirectory
+        res <- fmap stream <$> (liftIO $ runCLIMonad $ executePipeline [ Cat $ Just $ cwd ++ "/" ++ "test/data/LICENSE"
+                                                                       , Grep True False 0 ["(copy | CO[A-Z]*Y)"]
+                                                                       ])
+        fmap (length . splitStream '\n') res `shouldBe` Right 5
+    it "grep -i -w" $ do
+        cwd <- liftIO getCurrentDirectory
+        res <- fmap stream <$> (liftIO $ runCLIMonad $ executePipeline [ Cat $ Just $ cwd ++ "/" ++ "test/data/LICENSE"
+                                                                       , Grep True True 0 ["iN"]
+                                                                       ])
+        fmap (length . splitStream '\n') res `shouldBe` Right 6
+    it "grep -i -w -A 2" $ do
+        cwd <- liftIO getCurrentDirectory
+        res <- fmap stream <$> (liftIO $ runCLIMonad $ executePipeline [ Cat $ Just $ cwd ++ "/" ++ "test/data/LICENSE"
+                                                                       , Grep True True 2 ["iN"]
+                                                                       ])
+        fmap (length . splitStream '\n') res `shouldBe` Right 23

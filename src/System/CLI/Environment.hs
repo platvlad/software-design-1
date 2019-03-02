@@ -16,6 +16,7 @@ module System.CLI.Environment
   , runCLIMonad
   , setExit
   , setStream
+  , splitStream
   , toStream
   ) where
 
@@ -27,6 +28,7 @@ import           System.CLI.Environment.Internal.StreamOperations (fromStream, i
                                                                    lengthStream,
                                                                    printStream,
                                                                    readStream,
+                                                                   splitStream,
                                                                    toStream)
 import           System.CLI.Environment.Internal.Types            (CLIMonad, RuntimeEnv (..),
                                                                    Stream,

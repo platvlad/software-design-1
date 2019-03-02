@@ -2,6 +2,7 @@ module System.CLI.Environment.Internal.Types
   ( CLIMonad
   , RuntimeEnv (..)
   , Stream
+  , StreamUnit
   , VarState
   , runCLIMonad
   ) where
@@ -19,6 +20,9 @@ type VarState = Map String String
 --
 type Stream = ByteString
 
+-- | StreamUnit is one single element of 'Stream'.
+--
+type StreamUnit = Char
 
 -- | Environment that we need during interpreter's runtime.
 --

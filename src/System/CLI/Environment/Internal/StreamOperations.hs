@@ -5,6 +5,7 @@ module System.CLI.Environment.Internal.StreamOperations
   , lengthStream
   , printStream
   , readStream
+  , splitStream
   , toStream
   ) where
 
@@ -12,8 +13,8 @@ import qualified Data.ByteString                       as BS (intercalate,
                                                               length, null,
                                                               readFile)
 import qualified Data.ByteString.Char8                 as BSC8 (pack, putStrLn,
-                                                                unpack)
-import           System.CLI.Environment.Internal.Types (Stream)
+                                                                split, unpack)
+import           System.CLI.Environment.Internal.Types (Stream, StreamUnit)
 
 -- | Prints 'Stream' to the stdout.
 --
@@ -50,3 +51,8 @@ readStream = BS.readFile
 --
 lengthStream :: Stream -> Int
 lengthStream = BS.length
+
+-- | Split Stream by given 'Stream'.
+--
+splitStream :: StreamUnit -> Stream -> [Stream]
+splitStream = BSC8.split

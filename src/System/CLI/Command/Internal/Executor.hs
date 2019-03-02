@@ -1,14 +1,17 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards   #-}
 
 module System.CLI.Command.Internal.Executor
   ( executeCommand
   ) where
 
 import           Control.Exception                           (IOException, try)
+import           Control.Monad                               (when)
 import           Control.Monad.Except                        (throwError)
 import           Control.Monad.IO.Class                      (liftIO)
 import           Control.Monad.State.Strict                  (get, modify)
 import           System.CLI.Command.Internal.ExternalCommand (externalCommand)
+import           System.CLI.Command.Internal.Grep            (grepCommand)
 import           System.CLI.Command.Internal.Types           (Command (..))
 import           System.CLI.Command.Internal.Wc              (wcCommand)
 import           System.CLI.Environment                      (CLIMonad,
@@ -41,6 +44,13 @@ executeCommand command = do
       Pwd                   -> liftIO (fmap toStream getCurrentDirectory) >>= modify . setStream
       Exit                  -> modify (setExit True) >> modify (setStream "")
       Assignment var val    -> modify (insertVar var val) >> modify (setStream "")
+      Grep{..}              -> do
+          when (null $ grArgs !! 0) (throwError "grep: empty pattern")
+
+          input  <- if length grArgs == 1 then pure $ stream re else safeReadFile $ grArgs !! 1
+          stdout <- either throwError pure $ grepCommand grI grW grA (head grArgs) input
+
+          modify (setStream stdout)
       ExternalCommand shell -> externalCommand shell
   where
     safeReadFile :: String -> CLIMonad Stream
