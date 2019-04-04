@@ -1,19 +1,25 @@
+{-# OPTIONS_GHC -fno-warn-orphans #-}
+{-# LANGUAGE FlexibleInstances    #-}
+{-# LANGUAGE TypeSynonymInstances #-}
+
 -- | Module that is used to parse 'Command's.
 --
 module System.CLI.Parser
   ( parseCommands
   ) where
 
-import           Control.Applicative  (many, some, (<|>))
-import           Control.Monad        (when)
-import           Data.Bifunctor       (first)
-import           Data.List            (isPrefixOf)
-import           Data.Maybe           (listToMaybe)
-import           System.CLI.Command   (Command (..))
-import           Text.Megaparsec      (Parsec, customFailure, eof, getInput,
-                                       lookAhead, parse, takeWhile1P, try)
-import           Text.Megaparsec.Char (alphaNumChar, char, printChar, space,
-                                       space1, string)
+import           Control.Applicative   (many, some, (<|>))
+import           Control.Monad         (when)
+import           Data.Bifunctor        (first)
+import           Data.List             (findIndices, isPrefixOf)
+import           Data.Maybe            (listToMaybe)
+import           System.CLI.Command    (Command (..))
+import           Text.Megaparsec       (Parsec, eof, getInput, lookAhead, parse,
+                                        takeWhile1P, try)
+import           Text.Megaparsec.Char  (alphaNumChar, char, printChar, space,
+                                        space1, string)
+import           Text.Megaparsec.Error (ShowErrorComponent (..),
+                                        errorBundlePretty)
 
 -- | Alias for 'Parsec' monad.
 --
@@ -27,7 +33,12 @@ delimiter = '|'
 -- | Parse given 'String' into number of 'Command's.
 --
 parseCommands :: String -> Either String [Command]
-parseCommands = first show . parse commandsP ""
+parseCommands = first errorBundlePretty . parse commandsP ""
+
+-- | This instance is needed to use 'errorBundlePretty'.
+--
+instance ShowErrorComponent String where
+  showErrorComponent = id
 
 commandsP :: Parser [Command]
 commandsP = do
@@ -37,7 +48,7 @@ commandsP = do
 
     if null stream
       then pure res
-      else customFailure "Can't parse whole command."
+      else fail "Can't parse whole command."
 
 commandP :: Parser Command
 commandP = assignmentP <|> catP <|> wcP <|> pwdP <|> echoP <|> exitP <|> externalP
@@ -46,10 +57,20 @@ externalP :: Parser Command
 externalP = wrapCommandP $ do
     command <- takeWhile1P Nothing (/= '|')
 
-    when (any (`isPrefixOf` command) ["cat ", "echo ", "wc ", "pwd ", "exit "]) $
-      customFailure $ "Can't parse " ++ command ++ " command."
+    when (any (`isPrefixOf` command) ["cat ", "echo ", "wc ", "pwd ", "exit "]
+         || checkAssignmentViolation command) $
+      fail $ "Can't parse " ++ command ++ " command."
 
     pure $ ExternalCommand command
+  where
+    checkAssignmentViolation :: String -> Bool
+    checkAssignmentViolation command = res
+      where
+        beforeAssignment = takeWhile (/= '=') command
+        evenQuotes       = length (findIndices (== '\"') beforeAssignment) `mod` 2 == 0
+        evenBadQuotes    = length (findIndices (== '\'') beforeAssignment) `mod` 2 == 0
+
+        res = beforeAssignment /= command && (evenQuotes || evenBadQuotes)
 
 catP :: Parser Command
 catP = wrapCommandP $ do
@@ -57,7 +78,7 @@ catP = wrapCommandP $ do
 
     args <- try (space1 *> argsP) <|> (lookAhead (char delimiter) *> pure [])
 
-    when (length args > 1) $ customFailure "Too many args in cat command."
+    when (length args > 1) $ fail "Too many args in cat command."
 
     pure $ Cat $ listToMaybe args
 
@@ -67,7 +88,7 @@ wcP = wrapCommandP $ do
 
     args <- try (space1 *> argsP) <|> (lookAhead (char delimiter) *> pure [])
 
-    when (length args > 1) $ customFailure "Too many args in wc command."
+    when (length args > 1) $ fail "Too many args in wc command."
 
     pure $ Wc $ listToMaybe args
 
@@ -88,14 +109,16 @@ exitP = wrapCommandP $ string "exit" *> pure Exit
 assignmentP :: Parser Command
 assignmentP = wrapCommandP $ do
     name <- some alphaNumChar
-    when (null name) $ customFailure "Can't parse name in assignment operator."
+
+    when (null name)       $ fail "Can't parse name in assignment operator."
+    when ('$' `elem` name) $ fail "Name of variable can't contain '$' symbol."
 
     _ <- char '='
 
     value <- try (char '\'' *> some (alphaNumChar <|> char ' ') <* char '\'')
              <|> try (char '\"' *> some (alphaNumChar <|> char ' ') <* char '\"')
              <|> some alphaNumChar
-    when (null value) $ customFailure "Can't parse value in assignment operator."
+    when (null value) $ fail "Can't parse value in assignment operator."
 
     pure $ Assignment name value
 
@@ -104,7 +127,7 @@ assignmentP = wrapCommandP $ do
 --------------------------------------------------------------------------------
 
 wrapCommandP :: Parser Command -> Parser Command
-wrapCommandP p = try $ space *> p <* space <* ((const () <$> try (char delimiter)) <|> eof)
+wrapCommandP p = try $ space *> p <* space <* ((() <$ try (char delimiter) <* lookAhead printChar) <|> eof)
 
 argsP :: Parser [String]
 argsP = do
