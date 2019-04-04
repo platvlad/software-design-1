@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/AlexKaneRUS/software-design.svg?branch=cli)](https://travis-ci.org/AlexKaneRUS/software-design)
+
 # CLI
 
 ## Сборка проекта
