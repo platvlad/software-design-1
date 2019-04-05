@@ -34,3 +34,6 @@ failPreprocessorTests = describe "Check unsuccessful preprocessing." $ do
         preprocessCommands re "echo $aaa | cat $sdsdd7bs8 ||| $aaa" `shouldBe` Left "Can't find variable with name sdsdd7bs8 in the environment."
         preprocessCommands re "echo $sdsdd7b8 | cat echi ||aa| $sdsdd7b8 $bbb222  " `shouldBe` Left "Can't find variable with name bbb222 in the environment."
         preprocessCommands re "    wc $22  | cat 345$bbb22" `shouldBe` Left "Can't find variable with name 22 in the environment."
+
+    it "variable name with '$'" $ do
+        preprocessCommands re "echo $aaa | cat $sdsdd7b8 ||$a$x| $aaa" `shouldBe` Left "Name of variable a$x contains can't contain '$'."

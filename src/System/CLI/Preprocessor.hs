@@ -32,7 +32,8 @@ preprocessCommands RuntimeEnv{..} commands = res
              | otherwise                    = varFinder xs inQuotes inBadQuotes (curInd + 1)
 
     replaceVar :: String -> Int -> Int -> Either String (Int, String)
-    replaceVar command' ind acc | condA     = Left $ "Can't find variable with name " ++ varName ++ " in the environment."
+    replaceVar command' ind acc | condA     = Left $ "Name of variable " ++ varName ++ " contains can't contain '$'."
+                                | condB     = Left $ "Can't find variable with name " ++ varName ++ " in the environment."
                                 | otherwise = Right (newAcc, newString)
       where
         indexOfEnd = fromMaybe (length command' - ind) $ findIndex endVar $ drop ind command'
@@ -41,9 +42,10 @@ preprocessCommands RuntimeEnv{..} commands = res
         commandDropped = drop (ind + 1) command'
 
         varName = take delta commandDropped
-        varValM = varState M.!? varName
+        condA   = '$' `elem` varName
 
-        condA = isNothing varValM
+        varValM = varState M.!? varName
+        condB   = isNothing varValM
 
         varVal    = fromJust varValM
         newAcc    = acc - (delta + 1) + length varVal

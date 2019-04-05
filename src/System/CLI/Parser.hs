@@ -111,7 +111,6 @@ assignmentP = wrapCommandP $ do
     name <- some alphaNumChar
 
     when (null name)       $ fail "Can't parse name in assignment operator."
-    when ('$' `elem` name) $ fail "Name of variable can't contain '$' symbol."
 
     _ <- char '='
 

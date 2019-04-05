@@ -51,7 +51,5 @@ failParserTests = describe "Check unsuccessful parsing." $ do
       isLeft (parseCommands "    ") `shouldBe` True
     it "several commands in one part of pipeline" $
       isLeft (parseCommands "echo \"123\" | cat one echo ") `shouldBe` True
-    it "variable with $ symbol" $
-      isLeft (parseCommands "x=2 | x=2222 | x$y=1 ") `shouldBe` True
     it "echos with delimiter on end" $
         isLeft (parseCommands "echo|echo|echo |") `shouldBe` True
