@@ -17,8 +17,8 @@ import           Text.RE.TDFA.ByteString (SimpleREOptions (..),
 -- nLines - how many lines should be output after each match.
 --
 grepCommand :: Bool -> Bool -> Int -> String -> Stream -> Either String Stream
-grepCommand isI isW nLines pat stream = if badRe then Left "grep: can't parse regular expression"
-                                        else Right res
+grepCommand isI isW nLines pat stream | badRe      = Left "grep: can't parse regular expression"
+                                      | otherwise  = Right res
   where
     newPat = if isW then "\\b" ++ pat ++ "\\b" else pat
     option = if isI then BlockInsensitive else BlockSensitive

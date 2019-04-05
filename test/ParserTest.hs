@@ -65,3 +65,5 @@ failParserTests = describe "Check unsuccessful parsing." $ do
       isLeft (parseCommands "echo \"123\" | cat one echo ") `shouldBe` True
     it "echos with delimiter on end" $
         isLeft (parseCommands "echo|echo|echo |") `shouldBe` True
+    it "grep with negative value of parameter A" $
+        isLeft (parseCommands "grep -A -1 LICENSE") `shouldBe` True

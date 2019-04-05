@@ -12,31 +12,21 @@ module System.CLI.Parser
   ) where
 
 import           Control.Applicative             (many, some, (<|>))
-import           Control.Applicative             (many, some, (<|>))
 import           Control.Monad                   (when)
-import           Control.Monad                   (when)
-import           Data.Bifunctor                  (first)
+import           Control.Monad                   (void)
 import           Data.Bifunctor                  (first)
 import           Data.Functor                    (($>))
 import           Data.List                       (findIndices, isPrefixOf)
-import           Data.List                       (isPrefixOf)
 import           Data.Maybe                      (listToMaybe)
-import           Data.Maybe                      (listToMaybe)
-import           System.CLI.Command              (Command (..))
 import           System.CLI.Command              (Command (..))
 import           System.Console.CmdArgs          (Annotate (..), CmdArgs (..),
                                                   Mode, cmdArgsMode_, record,
                                                   (+=))
 import qualified System.Console.CmdArgs          as CA (args, name)
 import           System.Console.CmdArgs.Explicit (process)
-import           Text.Megaparsec                 (Parsec, eof, getInput,
-                                                  lookAhead, parse, takeWhile1P,
-                                                  try)
 import           Text.Megaparsec                 (Parsec, customFailure, eof,
                                                   getInput, lookAhead, parse,
-                                                  takeWhile1P, try)
-import           Text.Megaparsec.Char            (alphaNumChar, char, printChar,
-                                                  space, space1, string)
+                                                  setInput, takeWhile1P, try)
 import           Text.Megaparsec.Char            (alphaNumChar, char, printChar,
                                                   space, space1, string)
 import           Text.Megaparsec.Error           (ShowErrorComponent (..),
@@ -69,7 +59,7 @@ commandsP = do
 
     if null stream
       then pure res
-      else fail "Can't parse whole command."
+      else fmap pure commandP
 
 commandP :: Parser Command
 commandP = assignmentP <|> catP <|> wcP <|> pwdP <|> echoP <|> grepP <|> exitP <|> externalP
@@ -78,12 +68,27 @@ externalP :: Parser Command
 externalP = wrapCommandP $ do
     command <- takeWhile1P Nothing (/= '|')
 
-    when (any (`isPrefixOf` command) ["cat ", "echo ", "wc ", "pwd ", "exit "]
-         || checkAssignmentViolation command) $
-      fail $ "Can't parse " ++ command ++ " command."
+    when (any (`isPrefixOf` command) ["cat ", "wc ", "pwd ", "echo ", "grep ", "exit "]
+          || checkAssignmentViolation command) $ getError command
 
     pure $ ExternalCommand command
   where
+    getError :: String -> Parser ()
+    getError command = do
+        input <- getInput
+
+        setInput $ command ++ input
+        void getError'
+      where
+        getError' :: Parser Command
+        getError' | checkAssignmentViolation command = assignmentP
+                  | "cat " `isPrefixOf` command      = catP
+                  | "wc " `isPrefixOf` command       = wcP
+                  | "pwd " `isPrefixOf` command      = pwdP
+                  | "echo " `isPrefixOf` command     = echoP
+                  | "grep " `isPrefixOf` command     = grepP
+                  | otherwise                        = exitP
+
     checkAssignmentViolation :: String -> Bool
     checkAssignmentViolation command = res
       where
@@ -153,7 +158,8 @@ grepP = wrapCommandP $ do
       Right res -> do
           let command = cmdArgsValue res
 
-          when (length (grArgs command) `notElem` [1, 2]) $ customFailure "Wrong number of arguments in grep."
+          when (length (grArgs command) `notElem` [1, 2]) $ fail "Wrong number of arguments in grep."
+          when (grA command < 0)                          $ fail "Negative value of parameter A."
 
           pure command
       Left e    -> customFailure $ "grep: " ++ e
