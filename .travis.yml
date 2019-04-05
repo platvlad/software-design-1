@@ -26,4 +26,5 @@ install:
   - travis_wait stack --no-terminal --skip-ghc-check test --only-snapshot
 
 script:
+  - stack --no-terminal --skip-ghc-check build --pedantic
   - stack --no-terminal --skip-ghc-check test
