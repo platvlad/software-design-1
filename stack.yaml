@@ -1,0 +1,8 @@
+resolver: lts-13.6
+
+packages:
+- '.'
+
+ignore-revision-mismatch: true
+
+extra-deps: []
