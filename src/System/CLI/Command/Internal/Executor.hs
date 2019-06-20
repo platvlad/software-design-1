@@ -20,8 +20,9 @@ import           System.CLI.Environment                      (CLIMonad,
                                                               setStream,
                                                               toStream)
 import           System.Directory                            (getCurrentDirectory,
-                                                              getDirectoryContents,
-                                                              setCurrentDirectory)
+                                                              listDirectory,
+                                                              setCurrentDirectory,
+                                                              doesDirectoryExist)
 import           Data.List                                   (intercalate)
 -- | Execute given 'Command' according to its semantics.
 --
@@ -44,14 +45,25 @@ executeCommand command = do
       Exit                  -> modify (setExit True) >> modify (setStream "")
       Assignment var val    -> modify (insertVar var val) >> modify (setStream "")
       ExternalCommand shell -> externalCommand shell
-      Cd (Just path)        -> liftIO (setCurrentDirectory path) >> modify (setStream "")
+      Cd (Just path)        -> liftIO (setDirectoryIfExists path) >> modify (setStream "")
       Cd Nothing            -> pure ()
-      Ls                    -> lsDir >>= getStreamFromList >>= modify . setStream
+      Ls (Just path)        -> lsDir path >>= getStreamFromList >>= modify . setStream
+      Ls Nothing            -> lsCurrentDir >>= getStreamFromList >>= modify . setStream
   where
-    lsDir :: CLIMonad [FilePath]
-    lsDir = liftIO (getCurrentDirectory >>= getDirectoryContents)
+    lsDir :: FilePath -> CLIMonad [FilePath]
+    lsDir path = liftIO (doesDirectoryExist path >>= (\x -> if (x)
+                                                            then
+                                                            listDirectory path
+                                                            else pure []))
+    lsCurrentDir :: CLIMonad [FilePath]
+    lsCurrentDir = liftIO (getCurrentDirectory >>= listDirectory)
     getStreamFromList :: [FilePath] -> CLIMonad Stream
     getStreamFromList lst = pure (toStream (intercalate "\n" lst))
+    setDirectoryIfExists :: FilePath -> IO ()
+    setDirectoryIfExists path = doesDirectoryExist path >>= (setDirectoryOnCondition path)
+    setDirectoryOnCondition :: FilePath -> Bool -> IO ()
+    setDirectoryOnCondition path cond | cond = setCurrentDirectory path
+                                      | otherwise = pure()
     safeReadFile :: String -> CLIMonad Stream
     safeReadFile file = do
       resE <- liftIO $ (try (readStream file) :: IO (Either IOException Stream))

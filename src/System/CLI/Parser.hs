@@ -117,7 +117,14 @@ exitP :: Parser Command
 exitP = wrapCommandP $ string "exit" *> pure Exit
 
 lsP :: Parser Command
-lsP = wrapCommandP $ string "ls" *> pure Ls
+lsP = wrapCommandP $ do
+    _ <- string "ls"
+
+    args <- try (space1 *> argsP) <|> (lookAhead (char delimiter) *> pure [])
+
+    when (length args > 1) $ fail "Too many args in ls command."
+
+    pure $ Ls $ listToMaybe args
 
 assignmentP :: Parser Command
 assignmentP = wrapCommandP $ do

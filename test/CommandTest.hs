@@ -43,9 +43,9 @@ singleCommands = describe "Check commands by themselves." $ do
         res `shouldBe` "crs"
     it "ls" $ do
         fmap stream <$> (liftIO $ runCLIMonad $ executePipeline [Cd $ Just $ "src"])
-        res <- fmap stream <$> (liftIO $ runCLIMonad $ executePipeline [Ls])
+        res <- fmap stream <$> (liftIO $ runCLIMonad $ executePipeline [Ls $ Nothing])
         fmap stream <$> (liftIO $ runCLIMonad $ executePipeline [Cd $ Just $ "../"])
-        res `shouldBe` Right (C8.pack ("." ++ "\n" ++ "System" ++ "\n" ++ ".."))
+        res `shouldBe` Right (C8.pack ("System"))
 
 pipelinedCommands :: Spec
 pipelinedCommands = describe "Check commands linked with pipes." $ do
