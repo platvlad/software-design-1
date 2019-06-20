@@ -19,8 +19,10 @@ import           System.CLI.Environment                      (CLIMonad,
                                                               setExit,
                                                               setStream,
                                                               toStream)
-import           System.Directory                            (getCurrentDirectory)
-
+import           System.Directory                            (getCurrentDirectory,
+                                                              getDirectoryContents,
+                                                              setCurrentDirectory)
+import           Data.List                                   (intercalate)
 -- | Execute given 'Command' according to its semantics.
 --
 executeCommand :: Command -> CLIMonad ()
@@ -42,7 +44,14 @@ executeCommand command = do
       Exit                  -> modify (setExit True) >> modify (setStream "")
       Assignment var val    -> modify (insertVar var val) >> modify (setStream "")
       ExternalCommand shell -> externalCommand shell
+      Cd (Just path)        -> liftIO (setCurrentDirectory path) >> modify (setStream "")
+      Cd Nothing            -> pure ()
+      Ls                    -> lsDir >>= getStreamFromList >>= modify . setStream
   where
+    lsDir :: CLIMonad [FilePath]
+    lsDir = liftIO (getCurrentDirectory >>= getDirectoryContents)
+    getStreamFromList :: [FilePath] -> CLIMonad Stream
+    getStreamFromList lst = pure (toStream (intercalate "\n" lst))
     safeReadFile :: String -> CLIMonad Stream
     safeReadFile file = do
       resE <- liftIO $ (try (readStream file) :: IO (Either IOException Stream))

@@ -11,4 +11,6 @@ data Command = Cat (Maybe FilePath)     -- ^ read given file
              | Exit                     -- ^ exit CLI
              | Assignment String String -- ^ assign environmental variable to given value
              | ExternalCommand String   -- ^ command that is unknown to CLI
+             | Cd (Maybe FilePath)      -- ^ go to given directory
+             | Ls                       -- ^ print files in current directory
   deriving (Eq, Show)

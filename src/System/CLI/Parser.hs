@@ -51,13 +51,13 @@ commandsP = do
       else fail "Can't parse whole command."
 
 commandP :: Parser Command
-commandP = assignmentP <|> catP <|> wcP <|> pwdP <|> echoP <|> exitP <|> externalP
+commandP = assignmentP <|> catP <|> wcP <|> pwdP <|> echoP <|> exitP <|> cdP <|> lsP <|> externalP
 
 externalP :: Parser Command
 externalP = wrapCommandP $ do
     command <- takeWhile1P Nothing (/= '|')
 
-    when (any (`isPrefixOf` command) ["cat ", "echo ", "wc ", "pwd ", "exit "]
+    when (any (`isPrefixOf` command) ["cat ", "echo ", "wc ", "pwd ", "exit ", "cd ", "ls "]
          || checkAssignmentViolation command) $
       fail $ "Can't parse " ++ command ++ " command."
 
@@ -82,6 +82,16 @@ catP = wrapCommandP $ do
 
     pure $ Cat $ listToMaybe args
 
+cdP :: Parser Command
+cdP = wrapCommandP $ do
+    _ <- string "cd"
+
+    args <- try (space1 *> argsP) <|> (lookAhead (char delimiter) *> pure [])
+
+    when (length args > 1) $ fail "Too many args in cd command."
+
+    pure $ Cd $ listToMaybe args
+
 wcP :: Parser Command
 wcP = wrapCommandP $ do
     _ <- string "wc"
@@ -105,6 +115,9 @@ echoP = wrapCommandP $ do
 
 exitP :: Parser Command
 exitP = wrapCommandP $ string "exit" *> pure Exit
+
+lsP :: Parser Command
+lsP = wrapCommandP $ string "ls" *> pure Ls
 
 assignmentP :: Parser Command
 assignmentP = wrapCommandP $ do
