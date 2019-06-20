@@ -10,6 +10,7 @@ import           System.CLI.Command     (Command (..), executePipeline)
 import           System.CLI.Environment (RuntimeEnv (..), runCLIMonad, toStream)
 import           System.Directory       (getCurrentDirectory)
 import           Test.Hspec
+import qualified Data.ByteString.Char8 as C8
 
 main :: IO ()
 main = hspec $ do
@@ -35,6 +36,16 @@ singleCommands = describe "Check commands by themselves." $ do
     it "assignment" $ do
         res <- fmap varState <$> (liftIO $ runCLIMonad $ executePipeline [Assignment "AAA" "288AAAC"])
         res `shouldBe` Right (M.fromList [("AAA", "288AAAC")])
+    it "cd" $ do
+        fmap stream <$> (liftIO $ runCLIMonad $ executePipeline [Cd $ Just $ "src"])
+        res <- liftIO (getCurrentDirectory >>= (pure . reverse) >>= (pure . (take 3)))
+        fmap stream <$> (liftIO $ runCLIMonad $ executePipeline [Cd $ Just $ "../"])
+        res `shouldBe` "crs"
+    it "ls" $ do
+        fmap stream <$> (liftIO $ runCLIMonad $ executePipeline [Cd $ Just $ "src"])
+        res <- fmap stream <$> (liftIO $ runCLIMonad $ executePipeline [Ls])
+        fmap stream <$> (liftIO $ runCLIMonad $ executePipeline [Cd $ Just $ "../"])
+        res `shouldBe` Right (C8.pack ("." ++ "\n" ++ "System" ++ "\n" ++ ".."))
 
 pipelinedCommands :: Spec
 pipelinedCommands = describe "Check commands linked with pipes." $ do
